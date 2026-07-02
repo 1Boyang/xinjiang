@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新疆全景环线 · 伊犁+南疆+阿勒泰攻略</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1a5276;
+  --gold:#d4a843;
+  --green:#3d7a4a;
+  --teal:#2e86ab;
+  --sand:#f5e6d3;
+  --snow:#f0f4f8;
+  --text:#2c3e50;
+  --text-light:#7f8c8d;
+  --shadow:0 4px 20px rgba(0,0,0,0.08);
+  --shadow-hover:0 8px 40px rgba(0,0,0,0.15);
+  --radius:16px;
+  --transition:0.4s cubic-bezier(0.4,0,0.2,1);
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Noto Sans SC',-apple-system,sans-serif;
+  color:var(--text);
+  background:#fafaf8;
+  line-height:1.8;
+  overflow-x:hidden;
+}
+/* Hero */
+.hero{
+  position:relative;
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;
+  background:linear-gradient(135deg,#0c2340 0%,#1a5276 30%,#2e86ab 60%,#d4a843 100%);
+  overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='rgba(255,255,255,0.05)' d='M0,96L48,112C96,128,192,160,288,186.7C384,213,480,235,576,213.3C672,192,768,128,864,128C960,128,1056,192,1152,208C1248,224,1344,192,1392,176L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'/%3E%3C/svg%3E") bottom/100% 40% no-repeat;
+  pointer-events:none;
+}
+.hero-content{position:relative;z-index:1;padding:2rem;max-width:800px}
+.hero-badge{
+  display:inline-block;
+  background:rgba(255,255,255,0.15);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.2);
+  color:#fff;padding:0.4rem 1.2rem;border-radius:50px;
+  font-size:0.85rem;letter-spacing:2px;margin-bottom:1.5rem;
+}
+.hero h1{
+  font-size:clamp(2.4rem,6vw,4.5rem);
+  font-weight:900;color:#fff;
+  line-height:1.2;margin-bottom:0.5rem;
+  text-shadow:0 2px 20px rgba(0,0,0,0.3);
+}
+.hero h1 span{background:linear-gradient(135deg,#f5d77b,#e8b730);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero .subtitle{
+  font-size:clamp(1rem,2vw,1.4rem);
+  color:rgba(255,255,255,0.85);
+  margin-bottom:2rem;
+  font-weight:300;
+}
+.hero-stats{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap}
+.hero-stats .stat{color:rgba(255,255,255,0.9)}
+.hero-stats .stat .num{
+  font-size:1.8rem;font-weight:700;
+  background:linear-gradient(135deg,#f5d77b,#e8b730);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.hero-stats .stat .label{font-size:0.8rem;opacity:0.7}
+.scroll-indicator{
+  position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);
+  color:rgba(255,255,255,0.6);font-size:0.8rem;
+  animation:bounce 2s infinite;
+}
+@keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(10px)}}
+
+/* Nav */
+.nav-bar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(255,255,255,0.95);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(0,0,0,0.06);
+  padding:0.6rem 0;
+  box-shadow:0 2px 12px rgba(0,0,0,0.06);
+  transform:translateY(-100%);
+  transition:transform 0.45s cubic-bezier(0.4,0,0.2,1);
+}
+.nav-bar.nav-show{transform:translateY(0)}
+body{padding-top:0}
+.nav-inner{
+  max-width:1200px;margin:0 auto;
+  display:flex;gap:0.5rem;overflow-x:auto;
+  padding:0 1.5rem;scrollbar-width:none;
+}
+.nav-inner::-webkit-scrollbar{display:none}
+.nav-inner a{
+  flex-shrink:0;
+  padding:0.4rem 1rem;
+  border-radius:50px;
+  font-size:0.82rem;text-decoration:none;color:var(--text);
+  transition:var(--transition);
+  white-space:nowrap;
+}
+.nav-inner a:hover{background:rgba(26,82,118,0.1);color:var(--blue)}
+.nav-inner a.active{background:var(--blue);color:#fff}
+
+/* Map Button & Modal */
+.map-link-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:0.85rem;font-weight:500;color:var(--blue);
+  cursor:pointer;padding:0.2rem 0.8rem;
+  border-radius:50px;transition:0.2s;
+  border:1.5px solid rgba(26,82,118,0.15);
+  background:rgba(26,82,118,0.04);
+}
+.map-link-btn:hover{background:rgba(26,82,118,0.1);border-color:var(--blue)}
+.map-btn{
+  background:linear-gradient(135deg,#1a5276,#2e86ab);
+  color:#fff;border:none;padding:0.8rem 2.2rem;border-radius:50px;
+  font-size:1rem;font-family:inherit;font-weight:600;
+  cursor:pointer;transition:all 0.3s;
+  box-shadow:0 4px 20px rgba(26,82,118,0.3);
+}
+.map-btn:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(26,82,118,0.4)}
+
+.map-overlay{
+  display:none;position:fixed;inset:0;z-index:9998;
+  background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;
+  padding:1rem;
+}
+.map-overlay.open{display:flex}
+.map-modal{
+  background:#fff;border-radius:20px;
+  width:100%;max-width:1200px;
+  height:calc(100vh - 2rem);max-height:800px;
+  display:flex;flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);
+  animation:modalIn 0.35s ease;
+  overflow:hidden;
+}
+.map-modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1rem 1.5rem;
+  background:linear-gradient(135deg,#0c2340,#1a5276);
+  color:#fff;font-size:1rem;font-weight:600;
+  flex-shrink:0;
+}
+.map-modal-close{
+  width:32px;height:32px;border-radius:50%;
+  border:none;background:rgba(255,255,255,0.15);
+  color:#fff;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:0.2s;
+}
+.map-modal-close:hover{background:rgba(255,255,255,0.3)}
+.map-modal-body{flex:1;min-height:0}
+.map-modal-body #route-map{height:100%;width:100%}
+@media(max-width:768px){
+  .map-overlay{padding:0.5rem}
+  .map-modal{border-radius:16px;height:calc(100vh - 1rem);max-height:75vh}
+}
+
+/* Map */
+.map-section{padding:0;background:var(--snow)}
+#route-map{height:560px;width:100%}
+
+/* Sections */
+.section{padding:4rem 1.5rem;max-width:1000px;margin:0 auto}
+.section-header{margin-bottom:2.5rem}
+.section-header h2{
+  font-size:1.8rem;font-weight:700;
+  line-height:1.3;
+}
+.section-header p{color:var(--text-light);margin-top:0.3rem}
+
+/* Itinerary */
+.itinerary-section{background:var(--snow)}
+/* Tips */
+.tips-section{padding:4rem 1.5rem;max-width:1000px;margin:0 auto}
+.tips-section h2{font-size:1.8rem;font-weight:700;margin-bottom:2rem;text-align:center}
+.tips-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem}
+.tip-card{
+  background:#fff;border-radius:var(--radius);padding:1.5rem;
+  box-shadow:var(--shadow);
+  border-top:3px solid var(--blue);
+  transition:var(--transition);
+}
+.tip-card:hover{box-shadow:var(--shadow-hover);transform:translateY(-3px)}
+.tip-card:nth-child(2){border-top-color:var(--gold)}
+.tip-card:nth-child(3){border-top-color:var(--green)}
+.tip-card:nth-child(4){border-top-color:var(--teal)}
+.tip-card:nth-child(5){border-top-color:#c0392b}
+.tip-card .tip-icon{font-size:1.5rem;margin-bottom:0.5rem}
+.tip-card h3{font-size:1rem;font-weight:700;margin-bottom:0.3rem}
+.tip-card p{font-size:0.85rem;color:var(--text-light);line-height:1.6}
+
+/* Footer */
+footer{
+  background:linear-gradient(135deg,#0c2340,#1a5276);
+  color:rgba(255,255,255,0.7);
+  text-align:center;padding:2rem;
+  font-size:0.85rem;
+}
+
+/* Leaflet overrides */
+.leaflet-popup-content{font-family:'Noto Sans SC',sans-serif;font-size:0.85rem;line-height:1.5;min-width:200px;margin:12px 16px}
+.leaflet-popup-content-wrapper{border-radius:12px!important;overflow:hidden}
+.leaflet-popup-content strong{color:var(--blue)}
+.popup-day{display:inline-block;background:var(--blue);color:#fff;border-radius:4px;padding:0 6px;font-size:10px;font-weight:700;letter-spacing:0.5px;margin-right:5px}
+.popup-detail{font-size:12px;color:#444;line-height:1.6;margin-top:4px;padding-top:4px;border-top:1px solid #f0f0f0}
+.marker-label{
+  background:var(--blue);color:#fff;padding:2px 6px;
+  border-radius:4px;font-size:11px;font-weight:700;
+  white-space:nowrap;border:2px solid #fff;
+  box-shadow:0 2px 6px rgba(0,0,0,0.3);
+}
+.custom-marker{
+  display:flex;align-items:center;justify-content:center;
+  width:32px;height:32px;border-radius:50%;
+  color:#fff;font-size:12px;font-weight:700;
+  border:3px solid #fff;
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  transition:0.2s;
+}
+.custom-marker:hover{transform:scale(1.2);z-index:1000!important}
+/* ====== Day Tabs ====== */
+.day-tabs-wrap{background:var(--snow);padding:0 0 3rem}
+.day-tabs-bar{
+  display:flex;gap:0.4rem;overflow-x:auto;padding:0.6rem 1.5rem 0.8rem;
+  max-width:1000px;margin:0 auto;scrollbar-width:none;
+  justify-content:center;
+}
+.day-tabs-bar::-webkit-scrollbar{display:none}
+.day-tab{
+  flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:0.6rem 1rem;border-radius:12px;border:1.5px solid rgba(0,0,0,0.06);
+  background:rgba(255,255,255,0.6);cursor:pointer;
+  font-family:inherit;
+  transition:all 0.3s ease;
+  min-width:56px;
+}
+.day-tab:hover{background:#fff;border-color:var(--blue);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+.day-tab.active{
+  background:linear-gradient(135deg,#1a5276,#2e86ab);
+  border-color:transparent;color:#fff;
+  box-shadow:0 4px 16px rgba(26,82,118,0.35);
+  transform:translateY(-2px);
+}
+.day-tab .tab-day{font-size:0.8rem;font-weight:700;line-height:1}
+.day-tab .tab-emoji{font-size:1rem;line-height:1}
+.day-tab.active .tab-day{color:#fff}
+.day-tab .tab-sub{font-size:0.6rem;opacity:0.6;line-height:1}
+.day-tab.active .tab-sub{opacity:0.85;color:rgba(255,255,255,0.85)}
+
+.day-panels{max-width:900px;margin:1.5rem auto 0;padding:0 1.5rem}
+.day-panel{
+  display:none;
+  background:#fff;
+  border-radius:20px;
+  box-shadow:0 8px 40px rgba(0,0,0,0.08);
+  overflow:hidden;
+  animation:panelIn 0.4s ease;
+}
+.day-panel.active{display:block}
+@keyframes panelIn{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.day-panel-head{
+  padding:1.5rem 2rem 1rem;
+  background:linear-gradient(135deg,#0c2340,#1a5276);
+  color:#fff;
+  position:relative;
+  overflow:hidden;
+}
+.day-panel-head::after{
+  content:'';position:absolute;top:-40%;right:-10%;
+  width:200px;height:200px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.04);
+  pointer-events:none;
+}
+.day-panel-head .dp-day{
+  font-size:0.75rem;font-weight:500;opacity:0.7;
+  letter-spacing:2px;margin-bottom:2px;
+}
+.day-panel-head .dp-title{
+  font-size:1.2rem;font-weight:700;
+  display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;
+}
+.day-panel-head .dp-title .dp-arr{opacity:0.5;font-size:0.85rem}
+.day-panel-body{padding:1.5rem 2rem 2rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.day-panel-body .dp-section{display:flex;gap:0.8rem;align-items:flex-start}
+.day-panel-body .dp-icon{
+  width:38px;height:38px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:1rem;
+}
+.dp-stops-badge{
+  display:inline-flex;flex-wrap:wrap;gap:4px;margin-top:6px;
+}
+.dp-stops-badge span{
+  background:rgba(26,82,118,0.08);padding:1px 8px;
+  border-radius:6px;font-size:0.7rem;color:var(--blue);
+}
+.dp-icon-lodge{background:rgba(212,168,67,0.12)}
+.dp-icon-note{background:rgba(61,122,74,0.12)}
+.dp-icon-stops{background:rgba(46,134,171,0.12)}
+.dp-section h4{font-size:0.75rem;font-weight:600;color:var(--text-light);margin-bottom:2px}
+.dp-section p{font-size:0.88rem;color:var(--text);line-height:1.5}
+
+.day-panel-foot{
+  padding:0.8rem 2rem 1.5rem;
+  display:flex;gap:0.5rem;flex-wrap:wrap;
+}
+.day-panel-foot span{
+  background:rgba(212,168,67,0.1);color:var(--gold);
+  padding:0.2rem 0.8rem;border-radius:50px;
+  font-size:0.72rem;font-weight:500;
+}
+
+/* Day Panel Details (collapsible) */
+.dp-details{border-top:1px solid #f0f0f0;padding:0 2rem 1.5rem}
+.dp-details-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.8rem 0;cursor:pointer;user-select:none;
+  font-size:0.85rem;font-weight:600;color:var(--blue);
+  transition:0.2s;
+}
+.dp-details-toggle:hover{opacity:0.7}
+.dp-toggle-icon{font-size:0.7rem;transition:transform 0.3s}
+.dp-details.open .dp-toggle-icon{transform:rotate(180deg)}
+.dp-details-body{display:none;gap:0.6rem}
+.dp-details.open .dp-details-body{display:grid}
+.dp-detail-item{
+  background:#f8f9fa;border-radius:12px;
+  padding:1rem 1.2rem;
+  display:flex;flex-direction:column;gap:0.3rem;
+}
+.dp-detail-name{font-size:0.85rem;font-weight:600;color:var(--blue);cursor:pointer}
+.dp-detail-name:hover{opacity:0.7}
+.dp-detail-desc{font-size:0.82rem;color:#555;line-height:1.7}
+@media(max-width:768px){
+  .dp-details{padding:0 1rem 1rem}
+  .dp-detail-item{padding:0.8rem;gap:0.5rem}
+  .day-panel-body{grid-template-columns:1fr;padding:1rem}
+  .day-panel-head{padding:1rem}
+  .day-panel-head .dp-title{font-size:1rem;gap:0.3rem}
+  .day-panel-head .dp-title .dp-arr{font-size:0.75rem}
+  .day-panel-foot{padding:0.5rem 1rem 1rem}
+  .day-tabs-bar{justify-content:flex-start;padding:0.5rem 0.6rem;gap:0.3rem}
+  .day-tab{padding:0.4rem 0.7rem;min-width:48px}
+  .day-tab .tab-day{font-size:0.7rem}
+  .day-tab .tab-emoji{font-size:0.85rem}
+  .day-tab .tab-sub{font-size:0.55rem}
+  .day-panels{padding:0 0.8rem;margin-top:1rem}
+  .section-header h2{font-size:1.3rem}
+  .dp-section h4{font-size:0.7rem}
+  .dp-section p{font-size:0.82rem}
+  .dp-stops-badge span{font-size:0.65rem}
+  .day-panel-foot span{font-size:0.65rem}
+  .dp-details-toggle{font-size:0.8rem;padding:0.6rem 0}
+  .dp-detail-name{font-size:0.8rem}
+  .dp-detail-desc{font-size:0.78rem}
+  .section{padding:2rem 0.8rem}
+  .tips-section{padding:2rem 0.8rem}
+  .tips-section h2{font-size:1.3rem}
+}
+
+/* ====== Stop Detail Modal ====== */
+.stop-overlay{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;
+  padding:1.5rem;
+}
+.stop-overlay.open{display:flex;touch-action:none}
+.stop-modal{
+  background:#fff;border-radius:24px;
+  max-width:520px;width:100%;
+  max-height:85vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);
+  animation:modalIn 0.35s ease;
+  position:relative;
+}
+@keyframes modalIn{
+  from{opacity:0;transform:scale(0.92) translateY(20px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+.stop-modal-close{
+  position:absolute;top:14px;right:14px;
+  width:32px;height:32px;border-radius:50%;
+  border:none;background:rgba(0,0,0,0.06);
+  color:#666;font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:0.2s;font-family:inherit;
+}
+.stop-modal-close:hover{background:rgba(0,0,0,0.12);color:#000}
+.stop-modal-head{
+  padding:1.8rem 2rem 1.2rem;
+  background:linear-gradient(135deg,#0c2340,#1a5276);
+  color:#fff;border-radius:24px 24px 0 0;
+}
+.stop-modal-head .sm-day{
+  font-size:0.7rem;opacity:0.6;letter-spacing:1px;
+}
+.stop-modal-head .sm-name{
+  font-size:1.5rem;font-weight:700;margin-top:2px;
+}
+.stop-modal-head .sm-tag{
+  display:inline-block;
+  background:rgba(255,255,255,0.15);
+  padding:2px 10px;border-radius:50px;
+  font-size:0.7rem;margin-top:6px;
+}
+.stop-modal-body{padding:1.5rem 2rem 2rem}
+.stop-modal-body .sm-desc{
+  font-size:0.9rem;color:#444;line-height:1.8;
+  margin-bottom:1.2rem;
+}
+.sm-search-label{
+  font-size:0.75rem;font-weight:600;
+  color:var(--text-light);margin-bottom:8px;
+}
+.sm-search-row{
+  display:flex;gap:8px;flex-wrap:wrap;
+}
+.sm-search-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:0.5rem 1rem;border-radius:10px;
+  border:1.5px solid #e0e0e0;background:#fff;
+  font-size:0.8rem;font-family:inherit;cursor:pointer;
+  transition:all 0.2s;text-decoration:none;color:var(--text);
+}
+.sm-search-btn:hover{
+  border-color:var(--blue);background:rgba(26,82,118,0.05);
+  transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,0.06);
+}
+.sm-search-btn .sm-icon{font-size:1rem}
+@media(max-width:480px){
+  .stop-modal-head{padding:1.2rem 1rem 0.8rem}
+  .stop-modal-body{padding:1rem}
+  .stop-overlay{padding:0.5rem}
+  .stop-modal-head .sm-name{font-size:1.2rem}
+  .stop-modal-head .sm-day{font-size:0.65rem}
+  .stop-modal-head .sm-tag{font-size:0.6rem}
+  .stop-modal-body .sm-desc{font-size:0.82rem;margin-bottom:0.8rem}
+  .sm-search-label{font-size:0.7rem;margin-bottom:6px}
+  .sm-search-row{gap:6px}
+  .sm-search-btn{font-size:0.7rem;padding:0.35rem 0.7rem}
+}
+
+/* Responsive */
+@media(max-width:768px){
+  .hero{min-height:92vh}
+  .hero-content{padding:1.5rem}
+  .hero-badge{font-size:0.75rem;padding:0.3rem 1rem;margin-bottom:1rem}
+  .hero h1{font-size:clamp(1.8rem,5vw,2.8rem)}
+  .hero .subtitle{font-size:clamp(0.85rem,2vw,1.1rem);margin-bottom:1.5rem}
+  .hero-stats{gap:0.8rem}
+  .hero-stats .stat .num{font-size:1.4rem}
+  .hero-stats .stat .label{font-size:0.7rem}
+  .scroll-indicator{font-size:0.7rem;bottom:1rem}
+  .section{padding:2rem 1rem}
+  .tips-grid{grid-template-columns:1fr}
+  #route-map{height:400px}
+  .map-link-btn{font-size:0.75rem;padding:0.15rem 0.6rem}
+  .map-btn{padding:0.6rem 1.5rem;font-size:0.9rem}
+  .sm-search-btn{font-size:0.75rem;padding:0.4rem 0.8rem}
+}
+@media(max-width:480px){
+  #route-map{height:320px}
+  .hero{min-height:86vh}
+  .hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;max-width:240px;margin:0 auto}
+  .hero-stats .stat .num{font-size:1.2rem}
+  .hero-stats .stat .label{font-size:0.65rem}
+  .nav-inner a{font-size:0.72rem;padding:0.3rem 0.7rem}
+  .map-modal-head{padding:0.7rem 1rem;font-size:0.85rem}
+  .map-modal-close{width:28px;height:28px;font-size:14px}
+}
+
+/* Custom Leaflet Control for Legend */
+.info-legend{
+  background:rgba(255,255,255,0.95);
+  padding:10px 14px;border-radius:8px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.15);
+  font-size:12px;font-family:'Noto Sans SC',sans-serif;
+  line-height:1.8;max-height:300px;overflow-y:auto;
+}
+.info-legend h4{margin:0 0 4px;color:var(--blue);font-size:13px}
+.info-legend .legend-item{display:flex;align-items:center;gap:6px}
+.info-legend .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">🗺️ 新疆全景环线 · 深度攻略</div>
+    <h1>新疆<span>全景</span>伊犁+南疆+阿勒泰大环线</h1>
+    <p class="subtitle">一条逆时针环游新疆的壮丽路线 — 峡谷湖泊 · 沙漠公路 · 古道草原 · 童话村落</p>
+    <div class="hero-stats">
+    <div class="stat"><div class="num">13</div><div class="label">天完整行程</div></div>
+    <div class="stat"><div class="num">28</div><div class="label">途经停靠点</div></div>
+    <div class="stat"><div class="num">~3500</div><div class="label">环线公里</div></div>
+    <div class="stat"><div class="num">5</div><div class="label">主题段落</div></div>
+    </div>
+  </div>
+  <div class="scroll-indicator">↓ 向下探索</div>
+</section>
+
+<!-- Nav -->
+<nav class="nav-bar" id="nav">
+  <div class="nav-inner">
+    <a href="#map">🗺️ 路线地图</a>
+    <a href="#itinerary">📋 每日行程</a>
+    <a href="#tips">⚠️ 温馨提示</a>
+  </div>
+</nav>
+
+<!-- Itinerary: Day Tabs -->
+<section class="itinerary-section" id="itinerary">
+  <div class="section" style="padding-top:calc(2.5rem - 20px);padding-bottom:1rem">
+    <div class="section-header" style="text-align:center;margin-bottom:0">
+      <h2>📋 建议行程规划 <span class="map-link-btn" id="openMapBtn2">🗺️ 查看全景地图</span></h2>
+      <p>每日路线 · 住宿 · 亮点</p>
+    </div>
+  </div>
+  <div class="day-tabs-bar" id="dayTabsBar"></div>
+  <div class="day-panels" id="dayPanels"></div>
+  <div style="text-align:center;padding:2rem 1.5rem 3rem">
+    <button class="map-btn" id="openMapBtn">🗺️ 查看全景地图</button>
+  </div>
+</section>
+
+<!-- Map Modal -->
+<div class="map-overlay" id="mapOverlay">
+  <div class="map-modal">
+    <div class="map-modal-head">
+      <span>🗺️ 新疆全景环线地图</span>
+      <button class="map-modal-close" id="closeMapBtn">✕</button>
+    </div>
+    <div class="map-modal-body" id="mapModalBody">
+      <div id="route-map"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Map Section (hidden, used by modal) -->
+<section class="map-section" id="map" style="display:none">
+  <div id="route-map"></div>
+</section>
+
+<!-- Tips -->
+<section class="tips-section" id="tips">
+  <h2>⚠️ 温馨提示</h2>
+  <div class="tips-grid">
+    <div class="tip-card">
+      <div class="tip-icon">🛣️</div>
+      <h3>独库公路开放时间</h3>
+      <p>通常仅在每年 6 月初至 10 月初开放，受天气影响较大，出行前务必查询实时路况。</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">🪪</div>
+      <h3>边防证件</h3>
+      <p>前往白哈巴和霍尔果斯需要办理边防证，建议在户籍地办好，或带上身份证在新疆当地办理。</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">🧥</div>
+      <h3>昼夜温差极大</h3>
+      <p>新疆昼夜温差极大（尤其是巴音布鲁克、喀纳斯），即使是夏天也要带上冲锋衣或薄羽绒服。</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">🚗</div>
+      <h3>车程较长</h3>
+      <p>新疆地域辽阔，每天车程通常在 3-5 小时以上，务必备好零食和水。</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">📸</div>
+      <h3>最佳季节</h3>
+      <p>6-9 月是北疆最佳旅游季节，草原翠绿、花海盛开；9 月底至 10 月初可赏喀纳斯秋景。</p>
+    </div>
+  </div>
+</section>
+
+<!-- Stop Detail Modal -->
+<div class="stop-overlay" id="stopModal">
+  <div class="stop-modal">
+    <button class="stop-modal-close" id="modalClose">✕</button>
+    <div class="stop-modal-head">
+      <div class="sm-day" id="modalDay"></div>
+      <div class="sm-name" id="modalName"></div>
+      <div class="sm-tag" id="modalTag"></div>
+    </div>
+    <div class="stop-modal-body">
+      <div class="sm-desc" id="modalDesc"></div>
+      <div class="sm-search-label">🧭 导航前往</div>
+      <div class="sm-search-row" id="modalNavRow"></div>
+      <div class="sm-search-label" style="margin-top:12px">🔍 搜索更多攻略</div>
+      <div class="sm-search-row" id="modalSearchRow"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>🗺️ 新疆全景环线 · 伊犁+南疆+阿勒泰攻略 &mdash; 路线来源：文字攻略 / 地图生成于 2026 年</p>
+  <p style="margin-top:0.5rem;font-size:0.7rem;opacity:0.4" id="versionTag">by-001</p>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ====== MAP DATA ======
+const stops = [
+  { id:1, name:'伊宁',              lat:43.9167, lng:81.3167, day:'D1', part:0, tag:'🔵 出发城市', detail:'伊犁哈萨克自治州首府，一座充满异域风情的边陲城市。喀赞其民俗旅游区的房屋被涂成蓝色，有"东方摩洛哥"之称。是环线的起点与终点。' },
+  { id:2, name:'果子沟',            lat:44.2833, lng:80.8667, day:'D1', part:0, tag:'🌉 峡谷大桥', detail:'果子沟是伊犁的天然门户，峡谷险峻。果子沟大桥是新疆第一座斜拉桥，桥面距谷底约200米。行驶桥上，两边是茂密的雪岭云杉和陡峭的山谷。' },
+  { id:3, name:'赛里木湖',          lat:44.6000, lng:81.2000, day:'D1', part:0, tag:'💧 大西洋最后一滴眼泪', detail:'新疆海拔最高、面积最大的高山冷水湖。湖水来自大西洋暖湿气流最后眷顾的地方。湖水湛蓝纯净，建议环湖游览，全程约90公里。' },
+  { id:4, name:'奎屯',              lat:44.4167, lng:84.9000, day:'D2', part:1, tag:'🏙️ 中转城市', detail:'北疆重要的交通枢纽城市，独库公路北端起点。设施完善，是D2理想的住宿地。' },
+  { id:5, name:'乌尔禾魔鬼城',      lat:46.0833, lng:85.6667, day:'D3', part:1, tag:'💨 风蚀地貌', detail:'典型的雅丹风蚀地貌，怪石嶙峋。蒙古语称"苏鲁木哈克"，风大时发出呼啸声如鬼哭狼嚎。适合拍照打卡。' },
+  { id:6, name:'布尔津',            lat:47.7000, lng:86.8667, day:'D3', part:1, tag:'🐟 童话边城', detail:'去往喀纳斯的必经门户小城。整座城市充满俄式建筑风格，色彩明快。福海烤鱼是必吃美食。' },
+  { id:7, name:'喀纳斯',            lat:48.6833, lng:87.0333, day:'D4', part:1, tag:'🏞️ 人间仙境', detail:'北疆最核心的景区。三湾（神仙湾、月亮湾、卧龙湾）各有特色，观鱼台可俯瞰喀纳斯湖全景。湖水随季节变色。建议安排1-2天。' },
+  { id:8, name:'禾木',              lat:48.5667, lng:87.4333, day:'D5', part:2, tag:'🏘️ 童话村落', detail:'中国最美雪乡之一，图瓦人聚居的原始村落。晨雾中的木屋炊烟袅袅，宛如童话世界。秋季白桦林金黄一片。' },
+  { id:9, name:'北屯',              lat:47.3500, lng:87.8333, day:'D6', part:2, tag:'🏙️ 兵团新城', detail:'新疆生产建设兵团第十师师部所在地，是阿勒泰地区的交通枢纽和物资集散中心。' },
+  { id:10,name:'富蕴',              lat:46.9833, lng:89.5333, day:'D6', part:2, tag:'🏘️ 矿产之城', detail:'阿勒泰地区的小县城，意为"蕴藏丰富"。前往可可托海的中转站，设施齐全。' },
+  { id:11,name:'可可托海',          lat:47.2167, lng:90.0167, day:'D7', part:2, tag:'🌊 不是海', detail:'哈萨克语意为"绿色的丛林"。三号矿坑曾是国家最高机密矿区，为新中国偿还外债和"两弹一星"做出巨大贡献。河谷风光秀丽，秋季层林尽染。' },
+  { id:12,name:'天山天池',          lat:43.8866, lng:88.1317, day:'D8', part:2, tag:'🏔️ 雪山天池', detail:'距离乌鲁木齐约110公里的高山湖泊，海拔1910米。分天池和马牙山两大区域，可近距离观赏博格达峰雪山。湖水清澈碧蓝，四周云杉环绕。' },
+  { id:13,name:'乌鲁木齐',          lat:43.8256, lng:87.6167, day:'D8', part:2, tag:'📍 首府城市', detail:'新疆维吾尔自治区首府。国际大巴扎、红山塔等景点，也是品尝新疆美食（烤羊肉串、大盘鸡、抓饭）的最佳地点。' },
+  { id:14,name:'吐鲁番',            lat:42.9500, lng:89.1833, day:'D9', part:3, tag:'☀️ 火洲', detail:'中国最热的地方之一，以葡萄沟、火焰山、坎儿井闻名。葡萄成熟的季节满城飘香，夏季气温可达40℃以上。' },
+  { id:15,name:'和静',              lat:42.3167, lng:86.3833, day:'D9', part:3, tag:'🏘️ 巴州门户', detail:'巴音郭楞蒙古自治州的一个县，位于天山南麓。前往库尔勒和巴音布鲁克的重要中转站。' },
+  { id:16,name:'库尔勒',            lat:41.7500, lng:86.1500, day:'D10', part:3, tag:'🍐 梨城', detail:'巴音郭楞蒙古自治州首府，以库尔勒香梨闻名。是进入南疆和塔克拉玛干沙漠的重要门户，城市干净现代。' },
+  { id:17,name:'轮台',              lat:41.7833, lng:84.2500, day:'D10', part:3, tag:'🌳 沙漠公路起点', detail:'塔克拉玛干沙漠公路（轮台-民丰）的北端起点。历史上是西域三十六国之一。胡杨林秋季金黄壮观。' },
+  { id:18,name:'塔中',              lat:38.9667, lng:83.6333, day:'D11', part:3, tag:'🏜️ 沙漠腹地', detail:'塔克拉玛干沙漠腹地的石油工业小镇，位于沙漠公路中间点。四周是一望无际的沙海，感受"死亡之海"的壮阔。' },
+  { id:19,name:'民丰',              lat:37.0667, lng:82.6833, day:'D11', part:3, tag:'🌴 沙漠绿洲', detail:'塔克拉玛干沙漠南缘的绿洲县城，沙漠公路的南端终点。尼雅遗址（精绝国）位于其境内。' },
+  { id:20,name:'和田',              lat:37.1000, lng:79.9167, day:'D12', part:3, tag:'🏺 玉石之乡', detail:'以和田玉闻名天下。和田夜市是新疆最著名的夜市之一，烤鸽子、烤蛋、酸奶粽子等美食应有尽有。' },
+  { id:21,name:'阿拉尔',            lat:40.5500, lng:81.2833, day:'D12', part:3, tag:'🌾 兵团新城', detail:'新疆生产建设兵团第一师师部所在地，塔里木河穿城而过，是重要的棉花和水果产区。' },
+  { id:22,name:'库车',              lat:41.7167, lng:82.9667, day:'D12', part:3, tag:'🏛️ 龟兹故地', detail:'古称龟兹，西域三十六国之一。库车大峡谷、克孜尔千佛洞、库车王府是主要景点。也是独库公路南端起点。' },
+  { id:23,name:'巴音布鲁克',        lat:43.0333, lng:84.1500, day:'D13', part:4, tag:'🌅 九个太阳', detail:'九曲十八弯的开都河，天气好时日落余晖在河湾中倒映出多个太阳，据说最多能看到九个。天鹅湖也是重要看点。气候多变，建议备好防风防寒衣物。' },
+  { id:24,name:'那拉提',            lat:43.4333, lng:83.5500, day:'D13', part:4, tag:'🌿 空中草原', detail:'意为"最先见到太阳的地方"。海拔约2200米，被称为"空中草原"。6-8月野花盛开，牛羊成群，风景如画。' },
+  { id:25,name:'唐布拉草原',        lat:43.6000, lng:84.0000, day:'D13', part:4, tag:'🖼️ 百里画廊', detail:'独库公路沿线的草原风光带，有"百里画廊"之称。雪山、森林、草甸、河流交织，如诗如画。野花遍地的夏季美不胜收。' },
+  { id:26,name:'琼库什台',          lat:42.9167, lng:82.3000, day:'D13', part:4, tag:'🏘️ 原始古村落', detail:'哈萨克族原始古村落，至今保留着游牧民族的生活方式。比那拉提更安静原始，适合深度体验和摄影。' },
+  { id:27,name:'夏塔',              lat:42.7167, lng:80.6667, day:'D13', part:4, tag:'🏔️ 古道峡谷', detail:'夏塔古道是连接天山南北的古老通道，曾是丝绸之路的重要支线。峡谷中雪山巍峨，草原如毯，野花遍地，适合徒步。' },
+  { id:28,name:'昭苏',              lat:43.1572, lng:81.1333, day:'D13', part:4, tag:'🌻 天马之乡', detail:'7月油菜花海一望无际，金黄一片。昭苏天马（伊犁马）闻名全国，是汉代乌孙国故地，天马文化节值得一看。' },
+];
+
+// Route polyline (follows 10-day itinerary order)
+const routePath = [
+  [43.9167,81.3167],  // 伊宁
+  [44.2833,80.8667],  // 果子沟
+  [44.6000,81.2000],  // 赛里木湖
+  [44.4167,84.9000],  // 奎屯
+  [46.0833,85.6667],  // 乌尔禾魔鬼城
+  [47.7000,86.8667],  // 布尔津
+  [48.6833,87.0333],  // 喀纳斯
+  [48.5667,87.4333],  // 禾木
+  [47.3500,87.8333],  // 北屯
+  [46.9833,89.5333],  // 富蕴
+  [47.2167,90.0167],  // 可可托海
+  [43.8866,88.1317],  // 天山天池
+  [43.8256,87.6167],  // 乌鲁木齐
+  [42.9500,89.1833],  // 吐鲁番
+  [42.3167,86.3833],  // 和静
+  [41.7500,86.1500],  // 库尔勒
+  [41.7833,84.2500],  // 轮台
+  [38.9667,83.6333],  // 塔中
+  [37.0667,82.6833],  // 民丰
+  [37.1000,79.9167],  // 和田
+  [40.5500,81.2833],  // 阿拉尔
+  [41.7167,82.9667],  // 库车
+  [43.0333,84.1500],  // 巴音布鲁克
+  [43.4333,83.5500],  // 那拉提
+  [43.6000,84.0000],  // 唐布拉草原
+  [42.9167,82.3000],  // 琼库什台
+  [42.7167,80.6667],  // 夏塔
+  [43.1572,81.1333],  // 昭苏
+  [43.9167,81.3167],  // 伊宁
+];
+
+const partColors = ['#4a90d9','#3d7a4a','#2e86ab','#d4a843','#c0392b'];
+const partLabels = ['伊犁出发','北疆阿勒泰','东线天山','南疆沙漠','独库伊犁'];
+
+// ====== NAV SCROLL BEHAVIOR ======
+const navBar = document.getElementById('nav');
+let navVisible = false;
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 10 && !navVisible) {
+    navBar.classList.add('nav-show');
+    document.body.style.paddingTop = '52px';
+    navVisible = true;
+  } else if (window.scrollY <= 10 && navVisible) {
+    navBar.classList.remove('nav-show');
+    document.body.style.paddingTop = '0';
+    navVisible = false;
+  }
+});
+
+// ====== MAP MODAL ======
+let mapInitialized = false;
+let mapInstance = null;
+
+function initMap(containerId) {
+  if (mapInitialized && mapInstance) {
+    mapInstance.invalidateSize();
+    return mapInstance;
+  }
+
+  const m = L.map(containerId, {
+    center: [45.5, 85.5],
+    zoom: 6,
+    zoomControl: true,
+    attributionControl: false,
+  });
+
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: '© Esri'
+  }).addTo(m);
+
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: '© Esri'
+  }).addTo(m);
+
+  const routeLine = L.polyline(routePath, {
+    color: '#1a5276',
+    weight: 3,
+    opacity: 0.7,
+    dashArray: '8,12',
+  }).addTo(m);
+
+  let dashOffset = 0;
+  setInterval(() => {
+    dashOffset -= 1;
+    routeLine.setStyle({ dashOffset: String(dashOffset) });
+  }, 80);
+
+  stops.forEach((s) => {
+    const color = partColors[s.part] || '#888';
+    const icon = L.divIcon({
+      className: 'custom-marker',
+      html: `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:${color};font-size:${s.day.length>2?'10px':'12px'}">${s.day}</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+    const popup = `
+      <div style="font-family:'Noto Sans SC',sans-serif;min-width:200px">
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+          <span class="popup-day">${s.day}</span>
+          <strong style="font-size:14px">${s.name}</strong>
+        </div>
+        <span style="font-size:11px;color:#888">${s.tag}</span>
+        <div class="popup-detail">${s.detail}</div>
+      </div>
+    `;
+    L.marker([s.lat, s.lng], { icon }).addTo(m)
+      .bindPopup(popup);
+  });
+
+  const legend = L.control({ position: 'bottomright' });
+  legend.onAdd = () => {
+    const div = L.DomUtil.create('div', 'info-legend');
+    div.innerHTML = '<h4>📍 路线分段</h4>' +
+      partColors.map((c, i) =>
+        `<div class="legend-item"><span class="legend-dot" style="background:${c}"></span> ${partLabels[i]}</div>`
+      ).join('') +
+      '<hr style="margin:6px 0;border:none;border-top:1px solid #eee">' +
+      '<div style="font-size:11px;color:#999">点击标记查看详情 · D=当天行程</div>';
+    return div;
+  };
+  legend.addTo(m);
+
+  mapInitialized = true;
+  mapInstance = m;
+  return m;
+}
+
+const mapOverlay = document.getElementById('mapOverlay');
+document.getElementById('openMapBtn2').addEventListener('click', () => openMap());
+document.getElementById('openMapBtn').addEventListener('click', () => openMap());
+function openMap() {
+  mapOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => {
+    const m = initMap('route-map');
+    m.invalidateSize();
+  }, 100);
+}
+document.getElementById('closeMapBtn').addEventListener('click', () => {
+  mapOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+});
+mapOverlay.addEventListener('click', (e) => {
+  if (e.target === mapOverlay) {
+    mapOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && mapOverlay.classList.contains('open')) {
+    mapOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+});
+
+// ====== DAY TABS ======
+const dayData = [
+  { day:'D1', route:['伊宁','果子沟','赛里木湖'], emoji:'🚗', sub:'出发',
+    lodge:'赛里木湖/清水河', note:'从伊宁出发，途经果子沟大桥，环游赛里木湖',
+    tags:['果子沟大桥','赛里木湖','雪山倒映'], color:'#4a90d9',
+    stops:[
+      { name:'伊宁', desc:'伊犁哈萨克自治州首府，充满异域风情的边陲城市。喀赞其民俗区房屋被涂成蓝色，有"东方摩洛哥"之称。是环线的起点。' },
+      { name:'果子沟大桥', desc:'伊犁的天然门户，峡谷险峻。果子沟大桥是新疆第一座斜拉桥，桥面距谷底约200米。车行两边是茂密的雪岭云杉和陡峭的山谷。' },
+      { name:'赛里木湖', desc:'新疆海拔最高、面积最大的高山冷水湖，湖水湛蓝纯净。建议环湖游览（约90公里），全方位感受"大西洋最后一滴眼泪"的纯净之美。' }
+    ]},
+  { day:'D2', route:['赛里木湖','奎屯'], emoji:'🏙️', sub:'奎屯',
+    lodge:'奎屯', note:'上午继续游览赛里木湖，下午驱车前往奎屯',
+    tags:['赛里木湖晨景','奎屯'], color:'#4a90d9',
+    stops:[
+      { name:'赛里木湖', desc:'清晨的赛里木湖宁静如镜，湖面倒映雪山，是拍照的绝佳时机。环湖公路景色优美，可随时停车拍照。' }
+    ]},
+  { day:'D3', route:['奎屯','乌尔禾魔鬼城','布尔津'], emoji:'🏜️', sub:'北疆',
+    lodge:'布尔津', note:'傍晚抵达布尔津，品尝福海烤鱼',
+    tags:['乌尔禾魔鬼城','布尔津烤鱼','俄式建筑'], color:'#c0392b',
+    stops:[
+      { name:'乌尔禾魔鬼城', desc:'典型的风蚀雅丹地貌，怪石嶙峋。蒙古语称"苏鲁木哈克"，风大时发出呼啸声如鬼哭狼嚎。适合拍照打卡。' },
+      { name:'布尔津', desc:'去往喀纳斯的必经门户小城。整座城市充满俄式建筑风格，色彩明快。福海烤鱼是必吃美食，"能把人香迷糊"。' }
+    ]},
+  { day:'D4', route:['布尔津','喀纳斯'], emoji:'🏞️', sub:'喀纳斯',
+    lodge:'喀纳斯景区内', note:'游玩三湾，登观鱼台',
+    tags:['神仙湾','月亮湾','卧龙湾','观鱼台'], color:'#3d7a4a',
+    stops:[
+      { name:'喀纳斯', desc:'必看三湾（神仙湾、月亮湾、卧龙湾）。登观鱼台俯瞰喀纳斯湖全景。景区非常大，建议安排1-2天。湖水随季节变色，秋季五彩斑斓。' }
+    ]},
+  { day:'D5', route:['喀纳斯','禾木'], emoji:'🏘️', sub:'禾木',
+    lodge:'禾木', note:'晨起看禾木晨雾，漫步图瓦村落',
+    tags:['禾木晨雾','白桦林','图瓦村落'], color:'#3d7a4a',
+    stops:[
+      { name:'禾木', desc:'中国最美雪乡之一，图瓦人聚居的原始村落。晨雾中的木屋炊烟袅袅，宛如童话世界。秋季白桦林金黄一片，是摄影天堂。' }
+    ]},
+  { day:'D6', route:['禾木','北屯','富蕴'], emoji:'🌅', sub:'阿勒泰',
+    lodge:'富蕴', note:'沿途欣赏阿勒泰风光',
+    tags:['北屯','富蕴'], color:'#d4a843',
+    stops:[
+      { name:'北屯', desc:'新疆生产建设兵团第十师师部所在地，阿勒泰地区的交通枢纽。' },
+      { name:'富蕴', desc:'阿勒泰地区的小县城，意为"蕴藏丰富"。前往可可托海的中转站。' }
+    ]},
+  { day:'D7', route:['富蕴','可可托海'], emoji:'🌊', sub:'可可托海',
+    lodge:'可可托海', note:'参观三号矿坑，感受历史',
+    tags:['可可托海','三号矿坑','吉尔吉斯河'], color:'#d4a843',
+    stops:[
+      { name:'可可托海', desc:'可可托海不是海，是一条吉尔吉斯河。三号矿坑曾是国家最高机密矿区，为"两弹一星"做出巨大贡献。河谷风光秀丽，秋季层林尽染。' }
+    ]},
+  { day:'D8', route:['可可托海','天山天池','乌鲁木齐'], emoji:'🏔️', sub:'东线',
+    lodge:'乌鲁木齐', note:'路程较长，早起出发',
+    tags:['天山天池','马牙山','博格达峰'], color:'#4a90d9',
+    stops:[
+      { name:'天山天池', desc:'距离乌鲁木齐约110公里的高山湖泊。分天池和马牙山两大区域。马牙山可近距离观赏博格达峰雪山，半山腰俯瞰天池全貌。' },
+      { name:'乌鲁木齐', desc:'新疆首府，天山北麓。国际大巴扎、红山塔是著名景点，也是品尝烤羊肉串、大盘鸡、抓饭的最佳地点。' }
+    ]},
+  { day:'D9', route:['乌鲁木齐','吐鲁番','和静'], emoji:'☀️', sub:'南疆',
+    lodge:'和静', note:'感受火洲吐鲁番的热情',
+    tags:['葡萄沟','火焰山','坎儿井'], color:'#d4a843',
+    stops:[
+      { name:'吐鲁番', desc:'中国最热的地方之一，以葡萄沟、火焰山、坎儿井闻名。葡萄成熟的季节满城飘香，葡萄架下吃瓜果是独特的体验。' },
+      { name:'和静', desc:'巴音郭楞蒙古自治州的一个县，位于天山南麓。前往库尔勒和巴音布鲁克的重要中转站。' }
+    ]},
+  { day:'D10', route:['和静','库尔勒','轮台'], emoji:'🍐', sub:'库尔勒',
+    lodge:'轮台', note:'品库尔勒香梨，看轮台胡杨林',
+    tags:['库尔勒香梨','轮台胡杨林'], color:'#d4a843',
+    stops:[
+      { name:'库尔勒', desc:'巴音郭楞蒙古自治州首府，以库尔勒香梨闻名。进入南疆和塔克拉玛干沙漠的重要门户，城市干净现代。' },
+      { name:'轮台', desc:'塔克拉玛干沙漠公路北端起点。历史上是西域三十六国之一。沿途胡杨林秋季金黄壮观。' }
+    ]},
+  { day:'D11', route:['轮台','塔中','民丰'], emoji:'🏜️', sub:'沙漠',
+    lodge:'民丰', note:'穿越塔克拉玛干沙漠公路',
+    tags:['沙漠公路','塔克拉玛干','塔中'], color:'#d4a843',
+    stops:[
+      { name:'塔中', desc:'塔克拉玛干沙漠腹地的石油工业小镇，沙漠公路中间点。四周一望无际的沙海，感受"死亡之海"的壮阔。' },
+      { name:'民丰', desc:'塔克拉玛干沙漠南缘的绿洲县城，沙漠公路南端终点。尼雅遗址（精绝国）位于其境内。' }
+    ]},
+  { day:'D12', route:['民丰','和田','阿拉尔','库车'], emoji:'🏺', sub:'南疆',
+    lodge:'库车', note:'逛和田夜市，游库车古城',
+    tags:['和田夜市','和田玉','库车大峡谷'], color:'#d4a843',
+    stops:[
+      { name:'和田', desc:'以和田玉闻名天下。和田夜市是新疆最著名的夜市之一，烤鸽子、烤蛋、酸奶粽子等美食应有尽有。' },
+      { name:'阿拉尔', desc:'新疆生产建设兵团第一师师部所在地，塔里木河穿城而过，是重要的棉花和水果产区。' },
+      { name:'库车', desc:'古称龟兹，西域三十六国之一。库车大峡谷、克孜尔千佛洞是主要景点。也是独库公路南端起点。' }
+    ]},
+  { day:'D13', route:['库车','巴音布鲁克','那拉提','唐布拉草原','琼库什台','夏塔','昭苏','伊宁'], emoji:'🔵', sub:'伊犁',
+    lodge:'伊宁', note:'穿越独库公路南段，返回伊宁结束环线之旅',
+    tags:['独库公路','九曲十八弯','百里画廊','琼库什台','夏塔古道','昭苏天马'], color:'#2e86ab',
+    stops:[
+      { name:'巴音布鲁克', desc:'九曲十八弯的开都河，天气好时日落余晖倒映河湾，据说能看到九个太阳。天鹅湖也是重要看点。气候多变。' },
+      { name:'那拉提', desc:'意为"最先见到太阳的地方"，海拔约2200米的"空中草原"。6-8月野花盛开，牛羊成群，风景如画。' },
+      { name:'唐布拉草原', desc:'独库公路沿线的草原风光带，"百里画廊"之称。雪山、森林、草甸、河流交织，野花遍地的夏季美不胜收。' },
+      { name:'琼库什台', desc:'哈萨克族原始古村落，保留着游牧民族的生活方式。比那拉提更安静原始，适合深度体验和摄影。' },
+      { name:'夏塔', desc:'夏塔古道是连接天山南北的古老通道，丝绸之路的重要支线。峡谷中雪山巍峨，草原如毯，适合徒步。' },
+      { name:'昭苏', desc:'7月油菜花海一望无际。昭苏天马（伊犁马）闻名全国，是汉代乌孙国故地。"天马之乡"名不虚传。' }
+    ]},
+];
+
+const bar = document.getElementById('dayTabsBar');
+const panels = document.getElementById('dayPanels');
+
+dayData.forEach((d, i) => {
+  // Tab button
+  const btn = document.createElement('button');
+  btn.className = 'day-tab' + (i === 0 ? ' active' : '');
+  btn.dataset.index = i;
+  btn.innerHTML = `<span class="tab-day">${d.day}</span><span class="tab-emoji">${d.emoji}</span><span class="tab-sub">${d.sub}</span>`;
+  btn.addEventListener('click', () => switchDay(i));
+  bar.appendChild(btn);
+
+  // Panel
+  const panel = document.createElement('div');
+  panel.className = 'day-panel' + (i === 0 ? ' active' : '');
+  panel.dataset.index = i;
+
+  const routeHtml = d.route.map((r, ri) =>
+    `${ri > 0 ? '<span class="dp-arr"> → </span>' : ''}<span class="dp-stop">${r}</span>`
+  ).join('');
+
+  panel.innerHTML = `
+    <div class="day-panel-head">
+      <div class="dp-day">${d.day} · ${d.sub}</div>
+      <div class="dp-title">${d.emoji} ${routeHtml}</div>
+    </div>
+    <div class="day-panel-body">
+      <div class="dp-section">
+        <div class="dp-icon dp-icon-lodge">🏨</div>
+        <div><h4>住宿建议</h4><p>${d.lodge}</p></div>
+      </div>
+      <div class="dp-section">
+        <div class="dp-icon dp-icon-note">📌</div>
+        <div><h4>备注</h4><p>${d.note}</p></div>
+      </div>
+      <div class="dp-section" style="grid-column:1/-1">
+        <div class="dp-icon dp-icon-stops">📍</div>
+        <div>
+          <h4>途经亮点</h4>
+          <div class="dp-stops-badge">${d.tags.map(t => `<span>${t}</span>`).join('')}</div>
+        </div>
+      </div>
+    </div>
+    <div class="day-panel-foot">
+      ${d.tags.slice(0,3).map(t => `<span>✨ ${t}</span>`).join('')}
+    </div>
+    ${d.stops ? `
+    <div class="dp-details">
+      <div class="dp-details-toggle">
+        <span>📖 详细攻略</span>
+        <span class="dp-toggle-icon">▼</span>
+      </div>
+      <div class="dp-details-body">
+        ${d.stops.map(s => `
+          <div class="dp-detail-item">
+            <div class="dp-detail-name">📍 ${s.name}</div>
+            <div class="dp-detail-desc">${s.desc}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>` : ''}
+  `;
+  panels.appendChild(panel);
+});
+
+function switchDay(idx) {
+  document.querySelectorAll('.day-tab').forEach(b => b.classList.toggle('active', +b.dataset.index === idx));
+  document.querySelectorAll('.day-panel').forEach(p => p.classList.toggle('active', +p.dataset.index === idx));
+}
+
+// ====== STOP DETAIL MODAL ======
+const stopDetails = {
+  '伊宁': { tag:'🔵 蓝色童话城', desc:'伊犁哈萨克自治州首府，充满异域风情的边陲城市。喀赞其民俗旅游区的房屋被涂成蓝色，有"东方摩洛哥"之称。可以品尝地道的手工冰淇淋和新疆美食，感受浓郁的维吾尔族文化。'},
+  '果子沟': { tag:'🌉 峡谷大桥', desc:'果子沟是伊犁的天然门户，峡谷险峻。果子沟大桥是新疆第一座斜拉桥，桥面距谷底约200米。行驶桥上，两边是茂密的雪岭云杉和陡峭的山谷，极为壮观，是摄影爱好者的天堂。'},
+  '赛里木湖': { tag:'💧 大西洋最后一滴眼泪', desc:'新疆海拔最高（2071米）、面积最大的高山冷水湖。湖水来自大西洋暖湿气流最后眷顾的地方。湖水湛蓝纯净，透明度极高。建议环湖游览，全程约90公里，多角度欣赏湖光山色。'},
+  '奎屯': { tag:'🏙️ 枢纽城市', desc:'北疆重要的交通枢纽城市，独库公路北端起点。城市设施完善，酒店餐饮选择丰富，是理想的住宿中转站。'},
+  '乌尔禾魔鬼城': { tag:'💨 风蚀奇观', desc:'典型的雅丹风蚀地貌。蒙古语称"苏鲁木哈克"，哈萨克语称"沙依坦克尔西"。各种怪石形状奇特，风大时发出呼啸声如鬼哭狼嚎。适合拍照打卡。'},
+  '布尔津': { tag:'🐟 童话边城', desc:'去往喀纳斯的必经门户小城。整座城市充满俄式建筑风格，色彩明快。福海烤鱼是这里的必吃美食，烤羊肉串也堪称一绝。'},
+  '喀纳斯': { tag:'🏞️ 人间仙境', desc:'北疆最核心的景区，"喀纳斯"蒙古语意为"美丽而神秘的湖"。三湾（神仙湾、月亮湾、卧龙湾）各有特色，观鱼台可俯瞰喀纳斯湖全景。湖水随季节变色，秋季五彩斑斓。建议安排1-2天。'},
+  '禾木': { tag:'🏘️ 童话村落', desc:'中国最美雪乡之一，图瓦人聚居的原始村落。晨雾中的木屋炊烟袅袅，宛如童话世界。秋季白桦林金黄一片，冬季白雪覆盖如梦幻仙境。是摄影爱好者的天堂。'},
+  '北屯': { tag:'🏙️ 兵团新城', desc:'新疆生产建设兵团第十师师部所在地，位于额尔齐斯河南岸。是阿勒泰地区的交通枢纽和物资集散中心，城市规划整齐。'},
+  '富蕴': { tag:'🏘️ 矿产之城', desc:'阿勒泰地区的小县城，意为"蕴藏丰富"，因矿产资源丰富而得名。县城虽小但设施齐全，是前往可可托海的必经中转站。'},
+  '可可托海': { tag:'🌊 不是海', desc:'哈萨克语意为"绿色的丛林"，是一条吉尔吉斯河。著名的三号矿坑曾是国家最高机密矿区，为新中国偿还外债和"两弹一星"做出巨大贡献。河谷风光秀丽，秋季层林尽染。'},
+  '天山天池': { tag:'🏔️ 雪山天池', desc:'距离乌鲁木齐约110公里的高山湖泊，海拔1910米。景区分天池和马牙山两大区域。马牙山可近距离观赏博格达峰雪山，半山腰俯瞰天池全貌。湖水清澈碧蓝，四周云杉环绕。'},
+  '乌鲁木齐': { tag:'📍 首府城市', desc:'新疆维吾尔自治区首府，位于天山北麓。市区有国际大巴扎、红山塔等景点，也是品尝新疆美食（烤羊肉串、大盘鸡、抓饭）的最佳地点。'},
+  '吐鲁番': { tag:'☀️ 火洲', desc:'中国最热的地方之一，以葡萄沟、火焰山、坎儿井闻名。葡萄成熟的季节满城飘香，葡萄架下吃瓜果是独特的体验。夏季气温可达40℃以上，建议早晚出行。'},
+  '和静': { tag:'🏘️ 巴州门户', desc:'巴音郭楞蒙古自治州的一个县，位于天山南麓。是前往库尔勒和巴音布鲁克的重要中转站，有丰富的蒙古族文化。'},
+  '库尔勒': { tag:'🍐 梨城', desc:'巴音郭楞蒙古自治州首府，以库尔勒香梨闻名。是进入南疆和塔克拉玛干沙漠的重要门户，城市干净现代，孔雀河穿城而过。'},
+  '轮台': { tag:'🌳 沙漠公路起点', desc:'塔克拉玛干沙漠公路北端起点。历史上是西域三十六国之一。沿途胡杨林秋季金黄壮观，是世界上最大的胡杨林分布区之一。'},
+  '塔中': { tag:'🏜️ 沙漠腹地', desc:'塔克拉玛干沙漠腹地的石油工业小镇，位于沙漠公路中间点。四周一望无际的沙海，可以感受"死亡之海"的壮阔与苍凉。'},
+  '民丰': { tag:'🌴 沙漠绿洲', desc:'塔克拉玛干沙漠南缘的绿洲县城，沙漠公路南端终点。尼雅遗址（精绝国）位于其境内，是考古爱好者的必访之地。'},
+  '和田': { tag:'🏺 玉石之乡', desc:'以和田玉闻名天下。和田夜市是新疆最著名的夜市之一，烤鸽子、烤蛋、酸奶粽子、烤包子等美食应有尽有。手工地毯和艾德莱斯绸也是特色。'},
+  '阿拉尔': { tag:'🌾 兵团新城', desc:'新疆生产建设兵团第一师师部所在地，塔里木河穿城而过。是重要的棉花和水果产区，城市绿化好，有"塞外江南"之称。'},
+  '库车': { tag:'🏛️ 龟兹故地', desc:'古称龟兹，西域三十六国之一。库车大峡谷（天山神秘大峡谷）气势恢宏，克孜尔千佛洞比莫高窟更古老。库车王府和库车老街也值得一游。'},
+  '巴音布鲁克': { tag:'🌅 九个太阳', desc:'蒙古语意为"富饶的泉水"。核心景观是九曲十八弯的开都河，天气好时日落余晖倒映河湾，据说能看到九个太阳。天鹅湖也是重要看点。气候多变，建议备好防风防寒衣物。'},
+  '那拉提': { tag:'🌿 空中草原', desc:'意为"最先见到太阳的地方"，伊犁最著名的草原之一。海拔约2200米，被称为"空中草原"。6-8月草原上野花盛开，牛羊成群。是独库公路沿线的重要停靠点。'},
+  '唐布拉草原': { tag:'🖼️ 百里画廊', desc:'独库公路沿线的草原风光带，有"百里画廊"之称。雪山、森林、草甸、河流交织，如诗如画。夏季野花遍地，是露营和摄影的好去处。'},
+  '琼库什台': { tag:'🏘️ 原始古村落', desc:'哈萨克族原始古村落，至今保留着游牧民族的生活方式。比那拉提更安静原始，木屋散落在山谷间，适合深度体验和摄影。'},
+  '夏塔': { tag:'🏔️ 古道峡谷', desc:'夏塔古道是连接天山南北的古老通道，曾是丝绸之路的重要支线。峡谷中雪山巍峨、草原如毯、野花遍地，是新疆著名的徒步路线之一。'},
+  '昭苏': { tag:'🌻 天马之乡', desc:'7月油菜花海一望无际，金黄一片，极为壮观。昭苏天马（伊犁马）闻名全国，是汉代乌孙国故地。天马文化节期间可观看精彩的马术表演。'},
+};
+
+// Search engines
+const searchEngines = [
+  { name:'百度',   icon:'🔍', url: n => `https://www.baidu.com/s?wd=%E6%96%B0%E7%96%86+${encodeURIComponent(n)}+%E6%97%85%E6%B8%B8` },
+  { name:'小红书', icon:'📕', url: n => `https://www.xiaohongshu.com/search_result?keyword=%E6%96%B0%E7%96%86${encodeURIComponent(n)}%E6%97%85%E6%B8%B8%E6%94%BB%E7%95%A5` },
+  { name:'抖音',   icon:'🎵', url: n => `https://www.douyin.com/search/%E6%96%B0%E7%96%86${encodeURIComponent(n)}%E6%97%85%E6%B8%B8`, mobileUrl: n => `snssdk1128://search?keyword=%E6%96%B0%E7%96%86${encodeURIComponent(n)}%E6%97%85%E6%B8%B8` },
+  { name:'DeepSeek', icon:'🧠', url: n => `https://www.deepseek.com/?q=%E6%96%B0%E7%96%86+${encodeURIComponent(n)}+%E6%97%85%E6%B8%B8%E6%94%BB%E7%95%A5` },
+];
+
+const modal = document.getElementById('stopModal');
+const modalDay = document.getElementById('modalDay');
+const modalName = document.getElementById('modalName');
+const modalTag = document.getElementById('modalTag');
+const modalDesc = document.getElementById('modalDesc');
+const modalSearchRow = document.getElementById('modalSearchRow');
+const modalNavRow = document.getElementById('modalNavRow');
+const modalClose = document.getElementById('modalClose');
+
+function openStopModal(name, day, lat, lng) {
+  const info = stopDetails[name] || { tag:'📍 '+name, desc:'暂无详细介绍' };
+  modalDay.textContent = day || '';
+  modalName.textContent = name;
+  modalTag.textContent = info.tag;
+  modalDesc.textContent = info.desc;
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  modalSearchRow.innerHTML = searchEngines.map(e => {
+    const href = (isMobile && e.mobileUrl) ? e.mobileUrl(name) : e.url(name);
+    return `<a class="sm-search-btn" href="${href}" target="_blank" rel="noopener">
+      <span class="sm-icon">${e.icon}</span> ${e.name}搜索
+    </a>`;
+  }).join('');
+  if (lat != null && lng != null) {
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    let navUrl;
+    if (isAndroid) {
+      navUrl = `androidamap://navi?sourceApplication=opencode&poiname=${encodeURIComponent(name)}&lat=${lat}&lon=${lng}&dev=0`;
+    } else if (isIOS) {
+      navUrl = `iosamap://navi?sourceApplication=opencode&poiname=${encodeURIComponent(name)}&lat=${lat}&lon=${lng}&dev=0`;
+    } else {
+      navUrl = `https://uri.amap.com/navigation?to=${lng},${lat},${name}&mode=car&coordinate=gaode`;
+    }
+    modalNavRow.innerHTML = `<a class="sm-search-btn" href="${navUrl}" target="_blank" rel="noopener">
+      <span class="sm-icon">🗺️</span> 高德地图导航
+    </a>`;
+  }
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+}
+function closeStopModal() {
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
+  document.documentElement.style.overflow = '';
+}
+modalClose.addEventListener('click', closeStopModal);
+modal.addEventListener('click', e => { if (e.target === modal) closeStopModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeStopModal(); });
+
+// Details toggle (delegation for dynamic content)
+document.getElementById('dayPanels').addEventListener('click', (e) => {
+  const toggle = e.target.closest('.dp-details-toggle');
+  if (toggle) toggle.closest('.dp-details').classList.toggle('open');
+});
+
+// Make route stops clickable
+function makeStopsClickable() {
+  document.querySelectorAll('.dp-stop').forEach(el => {
+    const txt = el.textContent.trim();
+    if (!txt) return;
+    el.style.cursor = 'pointer';
+    el.style.borderBottom = '2px dashed rgba(255,255,255,0.35)';
+    el.style.transition = '0.2s';
+    el.addEventListener('mouseenter', () => { el.style.borderBottomColor = 'rgba(255,255,255,0.8)'; });
+    el.addEventListener('mouseleave', () => { el.style.borderBottomColor = 'rgba(255,255,255,0.35)'; });
+    el.addEventListener('click', () => {
+      const panel = el.closest('.day-panel');
+      const idx = panel ? panel.dataset.index : '0';
+      const dayLabel = dayData[idx] ? dayData[idx].day : '';
+      const s = stops.find(st => st.name === txt);
+      const lat = s ? s.lat : null;
+      const lng = s ? s.lng : null;
+      openStopModal(txt, dayLabel, lat, lng);
+    });
+  });
+}
+// Call after each tab switch
+const origSwitch = switchDay;
+switchDay = function(idx) {
+  origSwitch(idx);
+  setTimeout(makeStopsClickable, 50);
+};
+switchDay(0); // init
+
+// ====== SWIPE GESTURE ======
+(function() {
+  let sx = 0, sy = 0, st = 0;
+  const panels = document.getElementById('dayPanels');
+  panels.addEventListener('touchstart', function(e) {
+    const t = e.changedTouches[0];
+    sx = t.screenX; sy = t.screenY; st = Date.now();
+  }, { passive: true });
+  panels.addEventListener('touchend', function(e) {
+    if (Date.now() - st > 500) return;
+    const t = e.changedTouches[0];
+    const dx = t.screenX - sx, dy = t.screenY - sy;
+    if (Math.abs(dx) < 30 || Math.abs(dy) > Math.abs(dx) * 1.5) return;
+    const cur = document.querySelector('.day-panel.active');
+    if (!cur) return;
+    const next = dx < 0 ? +cur.dataset.index + 1 : +cur.dataset.index - 1;
+    if (next >= 0 && next < dayData.length) switchDay(next);
+  }, { passive: true });
+})();
+
+// ====== SMOOTH SCROLL ======
+document.querySelectorAll('.nav-inner a').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) {
+      const top = target.getBoundingClientRect().top + window.scrollY - 60;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+    document.querySelectorAll('.nav-inner a').forEach(n => n.classList.remove('active'));
+    a.classList.add('active');
+  });
+});
+
+// Active nav on scroll
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      document.querySelectorAll('.nav-inner a').forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { threshold: 0.3, rootMargin: '-80px 0px' });
+document.querySelectorAll('#itinerary,#tips').forEach(el => {
+  if (el.id) observer.observe(el);
+});
+</script>
+</body>
+</html>
